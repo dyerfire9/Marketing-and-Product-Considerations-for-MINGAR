@@ -1,0 +1,332 @@
+---
+title: "Data preparation"
+output:
+  pdf_document: default
+---
+
+# Instructions
+
+- You only need to submit the .Rmd of this file, not a PDF.
+
+- You should __comment__ your code clearly to show what you've done to prepare the data.
+
+- The purpose of this file is to use the data in the `data-raw` folder to create the data you will use in the report. The data you will use in the report should be saved in the `data` folder. It is good professional practice to make sure you're never directly modifying your raw data, but instead creating new datasets based on merges/manipulations that you need to reuse.
+
+- Make sure you've taken a look at the hints for the web scraping and census API. 
+
+- You may find the `write_rds()` function from the `readr` package helpful (it is loaded as part of the `tidyverse`).
+
+- You do not need to keep the structure below.
+
+# Set up
+
+```{r, libraries, message=FALSE, echo=FALSE}
+# install.packages("cancensus")
+library(tidyverse)
+library(janitor)
+library(polite)
+library(rvest)
+library(haven)
+library(cancensus)
+library(sf)
+library(geojsonsf)
+library(lubridate)
+library(gridExtra)
+```
+
+
+# Loading client data
+
+## Reading From Raw
+
+```{r, message=FALSE}
+cust_dev_raw <- read_rds("data-raw/cust_dev.Rds")
+cust_sleep_raw <- read_rds("data-raw/cust_sleep.Rds")
+customer_raw <- read_rds("data-raw/customer.Rds")
+device_raw <- read_rds("data-raw/device.Rds")
+```
+
+## Cleaning Data
+```{r, message=FALSE}
+# cleaning names with janitor
+cust_dev_clean <- cust_dev_raw %>% 
+  janitor::clean_names()
+
+cust_sleep_clean <- cust_sleep_raw %>% 
+  janitor::clean_names() 
+
+customer_clean <- customer_raw %>% 
+  janitor::clean_names() 
+
+device_clean <- device_raw %>% 
+  janitor::clean_names() 
+```
+
+```{r, message=FALSE}
+# mutating na values numeric columns to 0
+cust_dev_clean %>% 
+  mutate_if(is.numeric, replace_na, replace = 0)
+
+cust_sleep_clean %>% 
+  mutate_if(is.numeric, replace_na, replace = 0)
+
+customer_clean %>% 
+  mutate_if(is.numeric, replace_na, replace = 0)
+
+device_clean %>% 
+  mutate_if(is.numeric, replace_na, replace = 0)
+```
+
+```{r, message=FALSE}
+# cleaning NA values - if any exists
+cust_dev <- cust_dev_clean %>%
+  filter(!is.na(cust_id) | !is.na(dev_id))
+  
+cust_sleep <- cust_sleep_clean %>% 
+  filter(!is.na(cust_id) | !is.na(date) | !is.na(duration) | !is.na(flags))
+  
+customer <- customer_clean %>% 
+  filter(!is.na(cust_id) | !is.na(dob) | !is.na(postcode) | !is.na(sex) |
+           !is.na(pronouns) | !is.na(emoji_modifier))
+  
+device <- device_clean %>% 
+  filter(!is.na(dev_id) | !is.na(device_name) | !is.na(line) | !is.na(released))
+```
+
+
+# Getting external data
+
+## Web scraping industry data
+
+```{r, message=FALSE}
+url <- "https://fitnesstrackerinfohub.netlify.app/"
+
+# Make sure this code is updated appropriately to provide 
+# informative user_agent details
+target <- bow(url,
+              user_agent = "mrodin.karadeniz@utoronto.ca for STA303/1002 project",
+              force = TRUE)
+
+html <- scrape(target)
+
+device_data_raw <- html %>% 
+  html_elements("table") %>% 
+  html_table() %>% 
+  pluck(1) # added, in case you're getting a list format
+
+# write scraped data to data-raw
+write_rds(device_data_raw, "data-raw/device_data.rds")
+```
+
+## Cleaning scraped data
+```{r, message=FALSE}
+# cleaning names with janitor
+device_data_clean <- device_data_raw %>% 
+  janitor::clean_names()
+
+# mutating na values numeric columns to 0
+device_data_clean %>% 
+  mutate_if(is.numeric, replace_na, replace = 0)
+
+# cleaning NA id values - if any exists
+device_data <- device_data_clean %>% filter(!is.na(device_name) |
+                                            !is.na(line) |
+                                            !is.na(recommended_retail_price) |
+                                            !is.na(battery_life) |
+                                            !is.na(water_resitance) |
+                                            !is.na(heart_rate_sensor) |
+                                            !is.na(pulse_oximiter) |
+                                            !is.na(gps) |
+                                            !is.na(sleep_tracking) |
+                                            !is.na(smart_notifications) |
+                                            !is.na(contactless_payments) |
+                                            !is.na(released) |
+                                            !is.na(brand))
+
+```
+
+
+# Census API
+
+```{r, message=FALSE}
+options(cancensus.api_key = "",
+        cancensus.cache_path = "cache") # this sets a folder for your cache
+
+# get all regions as at the 2016 Census (2020 not up yet)
+regions <- list_census_regions(dataset = "CA16")
+
+regions_filtered <-  regions %>% 
+  filter(level == "CSD") %>% # Figure out what CSD means in Census data
+  as_census_region_list()
+
+# This can take a while
+# We want to get household median income
+census_data_csd <- get_census(dataset='CA16', regions = regions_filtered,
+                          vectors=c("v_CA16_2397"), 
+                          level='CSD', geo_format = "sf")
+
+# Simplify to only needed variables
+median_income_raw <- census_data_csd %>% 
+  as_tibble() %>% 
+  select(CSDuid = GeoUID, contains("median"), Population) %>% 
+  mutate(CSDuid = parse_number(CSDuid)) %>% 
+  rename(hhld_median_inc = 2)
+
+# write census data to data-raw
+write_rds(median_income_raw, "data-raw/median_income.rds")
+
+```
+
+## Cleaning census data
+```{r, message=FALSE}
+# cleaning names with janitor
+median_income_clean <- median_income_raw %>% 
+  janitor::clean_names()
+
+# mutating na values numeric columns to 0
+median_income_clean %>% 
+  mutate_if(is.numeric, replace_na, replace = 0)
+
+# cleaning NA id values - if any exists
+median_income <- median_income_clean %>% 
+  filter(!is.na(cs_duid) | !is.na(hhld_median_inc) | !is.na(population))
+
+```
+
+# Break glass in case of emergency
+```{r, message=FALSE}
+# read
+postcode_conversion_raw <-
+  read_rds("data-raw/break_glass_in_case_of_emergency.Rds")
+
+# cleaning names with janitor
+postcode_conversion_clean <- postcode_conversion_raw %>% 
+  janitor::clean_names()
+
+# cleaning NA id values - if any exists
+postcode_conversion_clean %>% 
+  filter(!is.na(pc) | !is.na(cs_duid))
+
+# mutating na values numeric columns to 0
+postcode_conversion <- postcode_conversion_clean %>% 
+  mutate_if(is.numeric, replace_na, replace = 0)
+
+```
+
+
+# Data Mutations and Merges for Question 1
+```{r, message=FALSE}
+# Load the income of each costumer assume their income is the median income of 
+# their neighborhood
+customer_income <- customer
+customer_income <- customer_income %>% rename(cs_duid = postcode)
+customer_income$cs_duid <- 
+  postcode_conversion$cs_duid[match(customer_income$cs_duid,
+                                    postcode_conversion$pc)]
+
+customer_income <- customer_income %>% add_column(income = "income")
+
+customer_income$income <- median_income$hhld_median_inc[match(
+  customer_income$cs_duid, median_income$cs_duid)]
+
+# Calculate age from dob and drop dob
+customer_info <- customer_income
+customer_info$age = as.numeric(difftime(Sys.Date(), customer_info$dob, 
+                                        units="weeks"))/52.25
+customer_info <- select(customer_info, -dob)
+
+# Rename emoji to represent skin color (whiteness) 1 being the whitest
+# 5 being the darkest
+customer_info <- customer_info %>% rename(skin_tone = emoji_modifier)
+customer_info <- customer_info %>% 
+  mutate(skin_tone = recode(
+    skin_tone, "U+1F3FB" = "1", "U+1F3FC" = "2",
+    "U+1F3FD" = "3", "U+1F3FE" = "4", "U+1F3FF" = "5"))
+
+# Factor gender variable
+customer_info$sex <- factor(customer_info$sex, 
+                            levels = c("Female", "Male", "Intersex"))
+
+# Add the device each costumer is using
+customer_info$device_id <- cust_dev$dev_id[match(
+  customer_info$cust_id, cust_dev$cust_id)]
+customer_info$device <- device$device_name[match(customer_info$device_id, 
+                                                 device$dev_id)]
+customer_info$dev_line <- device$line[match(customer_info$device, 
+                                                 device$device_name)]
+customer_info <- select(customer_info, -device_id)
+
+# Is the customer a newer one? 1 is yes, 0 is no
+customer_info <- customer_info %>% 
+  mutate(new = ifelse(dev_line == "Active" , "1", 
+                      ifelse(dev_line == "Advance", "1", "0")))
+customer_info$new <- as.numeric(customer_info$new)
+customer_info <- na.omit(customer_info)
+
+# New customer data (customer who uses advance and active)
+new_cust <- customer_info[customer_info$new == 1,]
+new_cust <- na.omit(new_cust)
+
+```
+
+
+# Data Mutations and Merges for Question 2
+```{r, message=FALSE}
+# We will now merge customer data and sleep data
+cust_sleep_data <- right_join(customer, cust_sleep, by = "cust_id")
+
+# Remove all observations that have NA values for emoji_modifier & Sex
+cust_sleep_data <- cust_sleep_data %>% filter(!is.na(emoji_modifier)) %>%
+  filter(!is.na(sex))
+
+# Add rate of flags to data
+cust_sleep_data <- cust_sleep_data %>%
+  mutate(flag_rate = flags/ceiling(duration/60))
+
+# Add a variable that generalizes the emoji skin to according to skin tone
+cust_sleep_data <- cust_sleep_data %>%
+  mutate(skin_tone = ifelse(emoji_modifier == "U+1F3FF", "dark", 
+                            ifelse(emoji_modifier == "U+1F3FE", "medium dark",
+                                   ifelse(emoji_modifier == "U+1F3FD", "medium",
+                                          ifelse(emoji_modifier == "U+1F3FC",
+                                                 "medium light", "light")))))
+
+# Get customer age using their DOB
+cust_sleep_data <- cust_sleep_data %>%
+  mutate(age = as.numeric(2022 - year(dob)))
+
+# Create age groups according to Statistics Canada Website
+cust_sleep_data <- cust_sleep_data %>%
+  mutate(age_group = ifelse(age >= 15 && age <= 24, "Youth",
+                            ifelse(age >= 25 && age <= 64, "Adulthood",
+                                   ifelse(age >= 65, "Senior", "Empty"))))
+
+# Factor gender variable
+cust_sleep_data$sex <- factor(cust_sleep_data$sex, 
+                            levels = c("Female", "Male", "Intersex"))
+```
+
+
+# Writing to data
+```{r, message=FALSE}
+# Customer Data
+write_rds(cust_dev, "data/cust_dev.rds")
+write_rds(cust_sleep, "data/cust_sleep.rds")
+write_rds(customer, "data/customer.rds")
+write_rds(device, "data/device.rds")
+write_rds(customer_info, "data/customer_info.rds")
+write_rds(new_cust, "data/new_cust.rds")
+write_rds(cust_sleep_data, "data/cust_sleep_data.rds")
+
+# Web Scraping
+write_rds(device_data, "data/device_data.rds")
+
+# Census API
+write_rds(median_income, "data/median_income.rds")
+
+# Break glass in case of emergency
+write_rds(postcode_conversion, "data/postcode_conversion_data.rds")
+
+```
+
+
