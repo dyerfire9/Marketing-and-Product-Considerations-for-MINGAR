@@ -13,7 +13,7 @@ Mingar - Final Report.pdf - Compiled Analysis Report <br />
 Mingar - Final.Rmd - The Analysis Code <br />
 MINGAR - Email.png - The email from the company regarding their needs for this project <br />
 Data - Folder containing cleaned data used in analysis <br />
-Data-raw - Zip file containing all raw data <br />
+Data-raw.zip - Zip file containing all raw data <br />
 
 ## Author information
 Muhammad Abdul Mannan <br />
