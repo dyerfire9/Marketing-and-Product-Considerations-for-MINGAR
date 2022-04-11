@@ -9,7 +9,7 @@ A statistical analysis project for a company that is facing issues with their pr
 MINGAR's new product lines 'Active' and 'Advance' appeal to consumers outside of the traditional age group and higher income base. However, green sensors could resultin poorer sleep scores for user's with darker skin tones.
 
 ## Files In Repo:
-Mingar - Final.pdf - Compiled Analysis Report <br />
+Mingar - Final Report.pdf - Compiled Analysis Report <br />
 Mingar - Final.Rmd - The Analysis Code <br />
 MINGAR - Email.png - The email from the company regarding their needs for this project <br />
 Data - Folder containing cleaned data used in analysis <br />
