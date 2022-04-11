@@ -1,7 +1,7 @@
 # Marketing and Product Considerations for MINGAR
 
 ## Preface:
-A statistical analysis project for a company that is facing issues with their product. This is simulated project, where our (mock) consultancy, The Outliers was approached by a (mock) company, MINGAR.
+A statistical analysis project for a company that is facing issues with their product. This is simulated project, where our consultancy, The Outliers was approached by a company, MINGAR and wanted to gain insight regarding their current customer and some issues with their products.
 
 ![Alt text](MINGAR-Email.png)
 
