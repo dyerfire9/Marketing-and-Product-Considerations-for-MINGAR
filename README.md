@@ -3,7 +3,7 @@
 ## Preface:
 A statistical analysis project for a company that is facing issues with their product. This is simulated project, where our (mock) consultancy, The Outliers was approached by a (mock) company, MINGAR.
 
-![Alt text](/MINGAR Email.png?raw=true "Email")
+![Alt text](MINGAR-Email.png)
 
 ## Abstract
 MINGAR's new product lines 'Active' and 'Advance' appeal to consumers outside of the traditional age group and higher income base. However, green sensors could resultin poorer sleep scores for user's with darker skin tones.
