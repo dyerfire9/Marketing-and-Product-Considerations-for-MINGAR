@@ -38,4 +38,4 @@ Yugong Zhang <br />
 Student - University of Toronto <br />
 LinkedIn:  <br />
 Website:  <br />
-Email:   <br />
+Email:  jadenzhang12345@gmail.com <br />
