@@ -24,18 +24,10 @@ Email: abdulmannancomp@gmail.com <br />
 
 David Lundgren <br />
 Student - University of Toronto <br />
-LinkedIn: <br />
-Website: <br />
-Email: <br />
 
 Muhammet Rodin Karadeniz <br />
 Student - University of Toronto <br />
-LinkedIn:  <br />
-Website:  <br />
-Email:   <br />
 
 Yugong Zhang <br />
 Student - University of Toronto <br />
-LinkedIn:  <br />
-Website:  <br />
 Email:  jadenzhang12345@gmail.com <br />
